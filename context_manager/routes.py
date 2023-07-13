@@ -1,3 +1,11 @@
+def rest_mapping(prefix):
+    def decorator(cls):
+        cls._route_prefix = prefix
+        return cls
+
+    return decorator
+
+
 def get_mapping(route):
     def decorator(f):
         f._route = route
@@ -16,19 +24,19 @@ def post_mapping(route):
     return decorator
 
 
-def delete_mapping(route):
+def put_mapping(route):
     def decorator(f):
         f._route = route
-        f._methods = ['DELETE']
+        f._methods = ['PUT']
         return f
 
     return decorator
 
 
-def put_mapping(route):
+def delete_mapping(route):
     def decorator(f):
         f._route = route
-        f._methods = ['PUT']
+        f._methods = ['DELETE']
         return f
 
     return decorator

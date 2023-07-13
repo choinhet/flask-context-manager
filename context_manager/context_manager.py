@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import os
 import pkgutil
 
 
@@ -74,11 +75,12 @@ class ContextManager:
 
     @classmethod
     def register_controller_routes(cls, controller):
+        prefix = getattr(controller, "_route_prefix", "")
         for method_name, method in inspect.getmembers(controller, predicate=inspect.ismethod):
             route = getattr(method, "_route", None)
             methods = getattr(method, "_methods", None)
             if route is not None and methods is not None:
-                cls.app.route(route, methods=methods)(method)
+                cls.app.route(os.path.join(prefix.rstrip('/'), route), methods=methods)(method)
 
     @classmethod
     def append(cls, app):
