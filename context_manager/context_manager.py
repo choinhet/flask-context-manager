@@ -3,7 +3,7 @@ import inspect
 import pkgutil
 
 
-class DIContainer:
+class ContextManager:
     components = dict()
     services = dict()
     controllers = dict()
