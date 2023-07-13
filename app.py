@@ -1,15 +1,30 @@
+import importlib
+import pkgutil
+
 from flask import Flask
 
-from config.config import Config
-from controller.todo_controller import TodoController
-from service.db_service import db
+from di_container import DIContainer
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
-db.init_app(app)
+if __name__ == "__main__":
 
-app.register_blueprint(TodoController.bp, url_prefix='/api/v1/todo')
+    print("Starting...")
+    DIContainer.start_components()
 
-if __name__ == '__main__':
+    print("Registering services...")
+    for (_, name, _) in pkgutil.iter_modules(['service']):
+        importlib.import_module(f'service.{name}')
+
+    print("Starting services...")
+    DIContainer.start_services()
+
+    print("Registering controllers...")
+    for (_, name, _) in pkgutil.iter_modules(['controller']):
+        importlib.import_module(f'controller.{name}')
+
+    print("Starting controller...")
+    DIContainer.start_controllers()
+
+    print("Starting server...")
     app.run(debug=True)
