@@ -1,9 +1,24 @@
+import importlib
 import inspect
+import pkgutil
+
 
 class DIContainer:
     components = dict()
     services = dict()
     controllers = dict()
+    app = None
+
+    @classmethod
+    def start(cls):
+        DIContainer.start_components()
+        for (_, name, _) in pkgutil.iter_modules(['service']):
+            importlib.import_module(f'service.{name}')
+        DIContainer.start_services()
+        for (_, name, _) in pkgutil.iter_modules(['controller']):
+            importlib.import_module(f'controller.{name}')
+        DIContainer.start_controllers()
+        cls.app.run(debug=True)
 
     @classmethod
     def register_component(cls, instance):
@@ -63,3 +78,17 @@ class DIContainer:
                         raise RuntimeError(f"Dependency {param.annotation} not found for controller {key}")
             instance = controller(**kwargs)
             cls.controllers[key] = instance
+
+            for method_name, method in inspect.getmembers(instance, predicate=inspect.ismethod):
+                route = getattr(method, "_route", None)
+                methods = getattr(method, "_methods", None)
+                if route is not None and methods is not None:
+                    cls.app.route(route, methods=methods)(method)
+
+    @classmethod
+    def append(cls, app):
+        cls.app = app
+
+    @classmethod
+    def get_app(cls):
+        return cls.app

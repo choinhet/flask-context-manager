@@ -1,5 +1,5 @@
-from decorators import Controller
-from routes import get_mapping
+from context_manager.context_classes import Controller
+from context_manager.routes import get_mapping
 from service.hello_service import HelloService
 
 

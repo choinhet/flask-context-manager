@@ -1,4 +1,4 @@
-from di_container import DIContainer
+from context_manager.di_container import DIContainer
 
 
 class Component:

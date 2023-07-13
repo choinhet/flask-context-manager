@@ -1,4 +1,4 @@
-from decorators import Service
+from context_manager.context_classes import Service
 
 
 @Service
