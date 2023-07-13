@@ -6,4 +6,3 @@ ContextManager.append(app)
 
 if __name__ == "__main__":
     ContextManager.start()
-    app.run(debug=True)
