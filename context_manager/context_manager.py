@@ -59,19 +59,27 @@ class ContextManager:
         sig = inspect.signature(obj.__init__)
         kwargs = {}
         for name, param in sig.parameters.items():
-            if name == 'self':
+            if name == 'self' or param.annotation == param.empty:
                 continue
-            if param.annotation != inspect._empty:
-                annotation = obj.__init__.__annotations__[name].decorated_class
-                if annotation in services:
-                    if param.annotation == obj:
-                        raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
-                    kwargs[name] = services[annotation]
-                elif annotation in components:
-                    kwargs[name] = components[annotation]
-                else:
-                    raise RuntimeError(f"Dependency {param.annotation} not found for object {obj.__name__}")
+            cls.validate_annotation(obj, name, param, services, components)
+            annotation = obj.__init__.__annotations__[name].decorated_class
+            kwargs[name] = cls.get_dependency(annotation, obj, services, components)
         return kwargs
+
+    @classmethod
+    def validate_annotation(cls, obj, name, param, services, components):
+        if obj.__init__.__annotations__[name].decorated_class not in services and \
+                obj.__init__.__annotations__[name].decorated_class not in components:
+            raise RuntimeError(f"Dependency {param.annotation} not found for object {obj.__name__}")
+
+    @classmethod
+    def get_dependency(cls, annotation, obj, services, components):
+        if annotation in services:
+            if annotation == obj:
+                raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
+            return services[annotation]
+        return components[annotation]
+
 
     @classmethod
     def register_controller_routes(cls, controller):
