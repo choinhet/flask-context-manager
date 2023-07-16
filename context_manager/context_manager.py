@@ -19,7 +19,7 @@ class ContextManager:
         cls.import_modules('config')
         cls.import_modules('service')
         cls.import_modules('model')
-        cls.import_modules('repository')
+        cls.import_modules('repositories')
 
         cls.start_components()
         cls.start_configurations()
