@@ -17,3 +17,21 @@ class Controller:
     def __init__(self, cls):
         ContextManager.register_controller(cls)
         self.decorated_class = cls.__name__
+
+
+class Configuration:
+    def __init__(self, cls):
+        ContextManager.register_configuration(cls)
+        self.decorated_class = cls.__name__
+
+
+class Model:
+    def __init__(self, cls):
+        ContextManager.register_model(cls)
+        self.decorated_class = cls.__name__
+
+
+class Repository:
+    def __init__(self, cls):
+        ContextManager.register_repository(cls)
+        self.decorated_class = cls.__name__

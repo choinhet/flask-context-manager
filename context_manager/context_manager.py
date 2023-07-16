@@ -8,15 +8,25 @@ class ContextManager:
     components = dict()
     services = dict()
     controllers = dict()
+    models = dict()
+    repositories = dict()
+    configurations = dict()
     app = None
 
     @classmethod
     def start(cls):
-        cls.start_components()
-        cls.import_modules('service')
-        cls.start_services()
         cls.import_modules('controller')
+        cls.import_modules('config')
+        cls.import_modules('service')
+        cls.import_modules('model')
+        cls.import_modules('repository')
+
+        cls.start_components()
+        cls.start_configurations()
+        cls.start_repositories()
+        cls.start_services()
         cls.start_controllers()
+
         cls.app.run(debug=True)
 
     @classmethod
@@ -37,48 +47,80 @@ class ContextManager:
         cls.controllers[instance.__name__] = instance
 
     @classmethod
+    def register_model(cls, instance):
+        cls.models[instance.__name__] = instance
+
+    @classmethod
+    def register_repository(cls, repository):
+        cls.repositories[repository.__name__] = repository
+
+    @classmethod
+    def register_configuration(cls, instance):
+        cls.configurations[instance.__name__] = instance
+
+    @classmethod
+    def start_configurations(cls):
+        for key, configuration in cls.configurations.items():
+            sig = inspect.signature(configuration.__init__)
+            params = sig.parameters
+            kwargs = {'app': cls.app} if 'app' in params else {}
+            instance = configuration(**kwargs)
+            cls.configurations[key] = instance
+
+    @classmethod
     def start_components(cls):
         for key, component in cls.components.items():
             cls.components[key] = component()
 
     @classmethod
+    def start_repositories(cls):
+        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
+        for key, repository in cls.repositories.items():
+            kwargs = cls.get_constructor_arguments(repository, dependency_dict_list)
+            cls.repositories[key] = repository(**kwargs)
+
+    @classmethod
     def start_services(cls):
+        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
         for key, service in cls.services.items():
-            kwargs = cls.get_constructor_arguments(service, cls.services, cls.components)
+            kwargs = cls.get_constructor_arguments(service, dependency_dict_list)
             cls.services[key] = service(**kwargs)
 
     @classmethod
     def start_controllers(cls):
+        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
         for key, controller in cls.controllers.items():
-            kwargs = cls.get_constructor_arguments(controller, cls.services, cls.components)
+            kwargs = cls.get_constructor_arguments(controller, dependency_dict_list)
             cls.controllers[key] = controller(**kwargs)
             cls.register_controller_routes(cls.controllers[key])
 
     @classmethod
-    def get_constructor_arguments(cls, obj, services, components):
+    def get_constructor_arguments(cls, obj, dependency_dict_list):
         sig = inspect.signature(obj.__init__)
         kwargs = {}
         for name, param in sig.parameters.items():
             if name == 'self' or param.annotation == param.empty:
                 continue
-            cls.validate_annotation(obj, name, param, services, components)
+            cls.validate_annotation(obj, name, param, dependency_dict_list)
             annotation = obj.__init__.__annotations__[name].decorated_class
-            kwargs[name] = cls.get_dependency(annotation, obj, services, components)
+            kwargs[name] = cls.get_dependency(annotation, obj, dependency_dict_list)
         return kwargs
 
     @classmethod
-    def validate_annotation(cls, obj, name, param, services, components):
-        if obj.__init__.__annotations__[name].decorated_class not in services and \
-                obj.__init__.__annotations__[name].decorated_class not in components:
-            raise RuntimeError(f"Dependency {param.annotation} not found for object {obj.__name__}")
+    def validate_annotation(cls, obj, name, param, dependency_dict_list):
+        for dependency_dict in dependency_dict_list:
+            if obj.__init__.__annotations__[name].decorated_class in dependency_dict:
+                return
+        raise RuntimeError(f"Dependency {param.annotation} not found for object {obj.__name__}")
 
     @classmethod
-    def get_dependency(cls, annotation, obj, services, components):
-        if annotation in services:
-            if annotation == obj:
-                raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
-            return services[annotation]
-        return components[annotation]
+    def get_dependency(cls, annotation, obj, dependency_dict_list):
+        for dependency_dict in dependency_dict_list:
+            if annotation in dependency_dict:
+                if annotation == obj:
+                    raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
+                return dependency_dict[annotation]
+        raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
 
     @classmethod
     def register_controller_routes(cls, controller):
