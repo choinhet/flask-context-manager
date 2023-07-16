@@ -80,7 +80,6 @@ class ContextManager:
             return services[annotation]
         return components[annotation]
 
-
     @classmethod
     def register_controller_routes(cls, controller):
         prefix = getattr(controller, "_route_prefix", "")
