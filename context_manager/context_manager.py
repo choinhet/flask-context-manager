@@ -2,6 +2,8 @@ import importlib
 import inspect
 import os
 import pkgutil
+from functools import partial
+
 from flask import request
 
 
@@ -130,13 +132,20 @@ class ContextManager:
             route = getattr(method, "_route", None)
             methods = getattr(method, "_methods", None)
             if route is not None and methods is not None:
-                def method_with_request_body(*args, **kwargs):
-                    request_body = request.json or {}
-                    new_kwargs = {param: request_body.get(param, None) for param in inspect.signature(method).parameters}
-                    new_kwargs.update(kwargs)
-                    return method(*args, **new_kwargs)
-                cls.app.route(os.path.join(prefix.rstrip('/'), route), methods=methods)(method_with_request_body)
+                wrapped_method = partial(cls.handle_request_body, method)
+                wrapped_method.__name__ = method_name + '_wrapped'
+                route_path = os.path.join(prefix.rstrip('/'), route.rstrip('/'))
+                cls.app.route(route_path, methods=methods)(wrapped_method)
 
+    @staticmethod
+    def handle_request_body(method, *args, **kwargs):
+        if request.method != 'GET':
+            request_body = request.json or {}
+            new_kwargs = {param: request_body.get(param, None) for param in inspect.signature(method).parameters}
+            new_kwargs.update(kwargs)
+        else:
+            new_kwargs = kwargs
+        return method(*args, **new_kwargs)
 
     @classmethod
     def append(cls, app):
