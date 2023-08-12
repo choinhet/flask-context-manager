@@ -9,4 +9,4 @@ class ConfigReader:
 
     @property
     def config(self):
-        return self.config
+        return self._config
