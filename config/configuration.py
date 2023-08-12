@@ -1,5 +1,6 @@
-from context_manager.context_classes import Configuration
 from flask_sqlalchemy import SQLAlchemy
+
+from context_manager.beans.configuration import Configuration
 
 
 @Configuration

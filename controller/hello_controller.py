@@ -1,4 +1,4 @@
-from context_manager.context_classes import Controller
+from context_manager.beans.controller import Controller
 from context_manager.routes import get_mapping, rest_mapping
 from service.hello_service import HelloService
 

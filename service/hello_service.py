@@ -1,4 +1,4 @@
-from context_manager.context_classes import Service
+from context_manager.beans.service import Service
 
 
 @Service

@@ -1,3 +1,4 @@
+import configparser
 import importlib
 import inspect
 import os
@@ -6,31 +7,41 @@ from functools import partial
 
 from flask import request
 
+from context_manager.config_keys import Contained, BaseKey
+
 
 class ContextManager:
-    components = dict()
-    services = dict()
-    controllers = dict()
-    models = dict()
-    repositories = dict()
-    configurations = dict()
+    beans = dict()
     app = None
+
+    config = configparser.ConfigParser()
+    current_path = os.path.dirname(__file__)
+    config.read(os.path.join(current_path, "resources/config.ini"))
+
+    imports = [
+        config[BaseKey.FOLDERS][Contained.CONTROLLERS],
+        config[BaseKey.FOLDERS][Contained.CONFIGURATIONS],
+        config[BaseKey.FOLDERS][Contained.SERVICES],
+        config[BaseKey.FOLDERS][Contained.MODELS],
+        config[BaseKey.FOLDERS][Contained.REPOSITORIES]
+    ]
 
     @classmethod
     def start(cls):
-        cls.import_modules('controller')
-        cls.import_modules('config')
-        cls.import_modules('service')
-        cls.import_modules('model')
-        cls.import_modules('repositories')
-
-        cls.start_components()
-        cls.start_configurations()
-        cls.start_repositories()
-        cls.start_services()
-        cls.start_controllers()
-
+        cls.import_all_modules()
+        cls.start_all_modules()
         cls.app.run(debug=True)
+
+    @classmethod
+    def import_all_modules(cls):
+        for import_name in cls.imports:
+            cls.import_modules(import_name)
+
+    @classmethod
+    def start_all_modules(cls):
+        # cls._order_modules()
+        for clz, bean in cls.beans.items():
+            clz.start(cls, bean)
 
     @classmethod
     def import_modules(cls, module_name):
@@ -38,114 +49,35 @@ class ContextManager:
             importlib.import_module(f'{module_name}.{name}')
 
     @classmethod
-    def register_component(cls, instance):
-        cls.components[instance.__name__] = instance
+    def accept(cls, dict_to_accept):
+        cls.beans.update(dict_to_accept)
 
     @classmethod
-    def register_service(cls, instance):
-        cls.services[instance.__name__] = instance
-
-    @classmethod
-    def register_controller(cls, instance):
-        cls.controllers[instance.__name__] = instance
-
-    @classmethod
-    def register_model(cls, instance):
-        cls.models[instance.__name__] = instance
-
-    @classmethod
-    def register_repository(cls, repository):
-        cls.repositories[repository.__name__] = repository
-
-    @classmethod
-    def register_configuration(cls, instance):
-        cls.configurations[instance.__name__] = instance
-
-    @classmethod
-    def start_configurations(cls):
-        for key, configuration in cls.configurations.items():
-            sig = inspect.signature(configuration.__init__)
-            params = sig.parameters
-            kwargs = {'app': cls.app} if 'app' in params else {}
-            instance = configuration(**kwargs)
-            cls.configurations[key] = instance
-
-    @classmethod
-    def start_components(cls):
-        for key, component in cls.components.items():
-            cls.components[key] = component()
-
-    @classmethod
-    def start_repositories(cls):
-        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
-        for key, repository in cls.repositories.items():
-            kwargs = cls.get_constructor_arguments(repository, dependency_dict_list)
-            cls.repositories[key] = repository(**kwargs)
-
-    @classmethod
-    def start_services(cls):
-        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
-        for key, service in cls.services.items():
-            kwargs = cls.get_constructor_arguments(service, dependency_dict_list)
-            cls.services[key] = service(**kwargs)
-
-    @classmethod
-    def start_controllers(cls):
-        dependency_dict_list = [cls.services, cls.repositories, cls.configurations, cls.components]
-        for key, controller in cls.controllers.items():
-            kwargs = cls.get_constructor_arguments(controller, dependency_dict_list)
-            cls.controllers[key] = controller(**kwargs)
-            cls.register_controller_routes(cls.controllers[key])
-
-    @classmethod
-    def get_constructor_arguments(cls, obj, dependency_dict_list):
+    def get_injections(cls, obj):
         sig = inspect.signature(obj.__init__)
         kwargs = {}
         for name, param in sig.parameters.items():
-            if name == 'self' or param.annotation == param.empty:
+            if name == 'self' or ContextManager._inspection_is_empty(param):
                 continue
-            cls.validate_annotation(obj, name, param, dependency_dict_list)
-            annotation = obj.__init__.__annotations__[name].decorated_class
-            kwargs[name] = cls.get_dependency(annotation, obj, dependency_dict_list)
+            annotation = obj.__init__.__annotations__[name].child_class
+            kwargs[name] = cls._get_dependency(annotation, obj)
         return kwargs
 
     @classmethod
-    def validate_annotation(cls, obj, name, param, dependency_dict_list):
-        for dependency_dict in dependency_dict_list:
-            if obj.__init__.__annotations__[name].decorated_class in dependency_dict:
-                return
-        raise RuntimeError(f"Dependency {param.annotation} not found for object {obj.__name__}")
+    def _inspection_is_empty(cls, param):
+        return type(param.annotation) == type(param.empty)
 
     @classmethod
-    def get_dependency(cls, annotation, obj, dependency_dict_list):
-        for dependency_dict in dependency_dict_list:
-            if annotation in dependency_dict:
-                if annotation == obj:
-                    raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
-                return dependency_dict[annotation]
-        raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
-
-    @classmethod
-    def register_controller_routes(cls, controller):
+    def register_routes(cls, controller):
         prefix = getattr(controller, "_route_prefix", "")
         for method_name, method in inspect.getmembers(controller, predicate=inspect.ismethod):
             route = getattr(method, "_route", None)
             methods = getattr(method, "_methods", None)
             if route is not None and methods is not None:
-                wrapped_method = partial(cls.handle_request_body, method)
+                wrapped_method = partial(cls._handle_request_body, method)
                 wrapped_method.__name__ = method_name + '_wrapped'
                 route_path = os.path.join(prefix.rstrip('/'), route.rstrip('/'))
                 cls.app.route(route_path, methods=methods)(wrapped_method)
-
-    @staticmethod
-    def handle_request_body(method, *args, **kwargs):
-        if request.method != 'GET':
-            request_body = request.json or {}
-            new_kwargs = {param: request_body.get(param, None) for param in inspect.signature(method).parameters}
-            new_kwargs.update(kwargs)
-        else:
-            new_kwargs = kwargs
-        return method(*args, **new_kwargs)
 
     @classmethod
     def append(cls, app):
@@ -155,3 +87,27 @@ class ContextManager:
     @classmethod
     def get_app(cls):
         return cls.app
+
+    @classmethod
+    def _get_dependency(cls, annotation, obj):
+
+        if annotation == obj:
+            raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
+
+        instantiated_beans = [bean for bean in cls.beans.values() if type(bean) != type]
+        dependency_dict = {bean.__class__: bean for bean in instantiated_beans}
+
+        if annotation in dependency_dict.keys():
+            return dependency_dict[annotation]
+
+        raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
+
+    @staticmethod
+    def _handle_request_body(method, *args, **kwargs):
+        if request.method != 'GET':
+            request_body = request.json or {}
+            new_kwargs = {param: request_body.get(param, None) for param in inspect.signature(method).parameters}
+            new_kwargs.update(kwargs)
+        else:
+            new_kwargs = kwargs
+        return method(*args, **new_kwargs)

@@ -1,5 +1,5 @@
 from config.configuration import SQLAlchemySession
-from context_manager.context_classes import Repository
+from context_manager.beans.repository import Repository
 
 
 @Repository
