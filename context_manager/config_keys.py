@@ -10,7 +10,7 @@ class Contained:
     CONTROLLERS: str
     CONFIGURATIONS: str
     SERVICES: str
-    MODELS: str
+    COMPONENTS: str
     REPOSITORIES: str
 
 

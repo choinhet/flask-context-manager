@@ -1,4 +1,3 @@
-import configparser
 import importlib
 import inspect
 import os
@@ -8,22 +7,20 @@ from functools import partial
 from flask import request
 
 from context_manager.config_keys import Contained, BaseKey
+from context_manager.configuration.config_reader import ConfigReader
 
 
 class ContextManager:
     beans = dict()
+    reader = ConfigReader()
     app = None
 
-    config = configparser.ConfigParser()
-    current_path = os.path.dirname(__file__)
-    config.read(os.path.join(current_path, "resources/config.ini"))
-
     imports = [
-        config[BaseKey.FOLDERS][Contained.CONTROLLERS],
-        config[BaseKey.FOLDERS][Contained.CONFIGURATIONS],
-        config[BaseKey.FOLDERS][Contained.SERVICES],
-        config[BaseKey.FOLDERS][Contained.MODELS],
-        config[BaseKey.FOLDERS][Contained.REPOSITORIES]
+        reader.config[BaseKey.FOLDERS][Contained.CONTROLLERS],
+        reader.config[BaseKey.FOLDERS][Contained.CONFIGURATIONS],
+        reader.config[BaseKey.FOLDERS][Contained.SERVICES],
+        reader.config[BaseKey.FOLDERS][Contained.COMPONENTS],
+        reader.config[BaseKey.FOLDERS][Contained.REPOSITORIES]
     ]
 
     @classmethod
