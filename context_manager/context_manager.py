@@ -16,11 +16,11 @@ class ContextManager:
     app = None
 
     imports = [
-        reader.config[BaseKey.FOLDERS][Contained.CONTROLLERS],
+        reader.config[BaseKey.FOLDERS][Contained.COMPONENTS],
         reader.config[BaseKey.FOLDERS][Contained.CONFIGURATIONS],
         reader.config[BaseKey.FOLDERS][Contained.SERVICES],
-        reader.config[BaseKey.FOLDERS][Contained.COMPONENTS],
-        reader.config[BaseKey.FOLDERS][Contained.REPOSITORIES]
+        reader.config[BaseKey.FOLDERS][Contained.REPOSITORIES],
+        reader.config[BaseKey.FOLDERS][Contained.CONTROLLERS]
     ]
 
     @classmethod
