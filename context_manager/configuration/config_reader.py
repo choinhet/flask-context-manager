@@ -10,3 +10,12 @@ class ConfigReader:
     @property
     def config(self):
         return self._config
+
+    def read_list(self, key, origin=None):
+        origin = origin or self._config
+        current_item = origin[key]
+        return [item.strip() for item in current_item.strip('[]').split(',')]
+
+    def read(self, key, origin=None):
+        origin = origin or self._config
+        return origin[key]

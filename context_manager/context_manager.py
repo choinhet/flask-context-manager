@@ -1,12 +1,11 @@
 import importlib
 import inspect
 import os
-import pkgutil
 from functools import partial
 
 from flask import request
 
-from context_manager.config_keys import Contained, BaseKey
+from context_manager.config_keys import BaseKey
 from context_manager.configuration.config_reader import ConfigReader
 
 
@@ -15,35 +14,49 @@ class ContextManager:
     reader = ConfigReader()
     app = None
 
-    imports = [
-        reader.config[BaseKey.FOLDERS][Contained.COMPONENTS],
-        reader.config[BaseKey.FOLDERS][Contained.CONFIGURATIONS],
-        reader.config[BaseKey.FOLDERS][Contained.SERVICES],
-        reader.config[BaseKey.FOLDERS][Contained.REPOSITORIES],
-        reader.config[BaseKey.FOLDERS][Contained.CONTROLLERS]
-    ]
+    folders = reader.read(BaseKey.FOLDERS)
+    ignore_patterns = reader.read_list(BaseKey.IGNORE, origin=folders)
 
     @classmethod
     def start(cls):
-        cls.import_all_modules()
+        cls.import_all_modules(ignore_patterns=cls.ignore_patterns)
         cls.start_all_modules()
         cls.app.run(debug=True)
 
+    @staticmethod
+    def is_ignored(path, ignore_patterns):
+        return any(pattern in path for pattern in ignore_patterns)
+
+    @staticmethod
+    def get_module_name_from_path(path):
+        rel_path = os.path.relpath(path).replace(os.sep, '.')
+        module_name, _ = os.path.splitext(rel_path)
+        return module_name
+
     @classmethod
-    def import_all_modules(cls):
-        for import_name in cls.imports:
-            cls.import_modules(import_name)
+    def import_module_from_path(cls, file_path):
+        module_name = cls.get_module_name_from_path(file_path)
+        try:
+            importlib.import_module(module_name)
+        except Exception as e:
+            print(f"Failed to import {module_name}: {e}")
+
+    @classmethod
+    def import_all_modules(cls, root_dir=".", ignore_patterns=None):
+        for dir_path, _, filenames in os.walk(root_dir):
+            if cls.is_ignored(dir_path, ignore_patterns or []):
+                continue
+
+            for filename in filenames:
+                if filename.endswith('.py') and not cls.is_ignored(filename, ignore_patterns):
+                    file_path = os.path.join(dir_path, filename)
+                    cls.import_module_from_path(file_path)
 
     @classmethod
     def start_all_modules(cls):
         # cls._order_modules()
         for clz, bean in cls.beans.items():
             clz.start(cls, bean)
-
-    @classmethod
-    def import_modules(cls, module_name):
-        for _, name, _ in pkgutil.iter_modules([module_name]):
-            importlib.import_module(f'{module_name}.{name}')
 
     @classmethod
     def accept(cls, dict_to_accept):
@@ -67,13 +80,13 @@ class ContextManager:
     @classmethod
     def register_routes(cls, controller):
         prefix = getattr(controller, "_route_prefix", "")
-        for method_name, method in inspect.getmembers(controller, predicate=inspect.ismethod):
+        for method_name, method in inspect.getmembers(controller, predicate=inspect.isfunction):
             route = getattr(method, "_route", None)
             methods = getattr(method, "_methods", None)
             if route is not None and methods is not None:
                 wrapped_method = partial(cls._handle_request_body, method)
                 wrapped_method.__name__ = method_name + '_wrapped'
-                route_path = os.path.join(prefix.rstrip('/'), route.rstrip('/'))
+                route_path = prefix.rstrip('/') + route.rstrip('/')
                 cls.app.route(route_path, methods=methods)(wrapped_method)
 
     @classmethod

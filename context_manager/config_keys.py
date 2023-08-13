@@ -6,14 +6,6 @@ def auto_set_key(cls):
 
 
 @auto_set_key
-class Contained:
-    CONTROLLERS: str
-    CONFIGURATIONS: str
-    SERVICES: str
-    COMPONENTS: str
-    REPOSITORIES: str
-
-
-@auto_set_key
 class BaseKey:
     FOLDERS: str
+    IGNORE: str
