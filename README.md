@@ -12,7 +12,7 @@ The Flask Context Manager is a project that provides an inversion of control (Io
 
 ## Usage
 
-To use the Context Manager, you need to structure your application in a specific way. Your application should have separate directories for services (`/service`), controllers (`/controller`), and components (`/component`).
+To use the Context Manager, your application should have separate directories for services (`/service`), controllers (`/controller`), and components (`/component`).
 
 Here's an example of how you might define a service and a controller:
 
