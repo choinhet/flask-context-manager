@@ -78,9 +78,13 @@ class ContextManager:
         return type(param.annotation) == type(param.empty)
 
     @classmethod
+    def is_function_or_method(cls, element):
+        return inspect.isfunction(element) or inspect.ismethod(element)
+
+    @classmethod
     def register_routes(cls, controller):
         prefix = getattr(controller, "_route_prefix", "")
-        for method_name, method in inspect.getmembers(controller, predicate=inspect.isfunction):
+        for method_name, method in inspect.getmembers(controller, predicate=cls.is_function_or_method):
             route = getattr(method, "_route", None)
             methods = getattr(method, "_methods", None)
             if route is not None and methods is not None:
@@ -110,7 +114,11 @@ class ContextManager:
         if annotation in dependency_dict.keys():
             return dependency_dict[annotation]
 
-        raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
+        try:
+            if annotation in cls.beans.keys():
+                return cls.beans[annotation].start()
+        except RuntimeError:
+            raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
 
     @staticmethod
     def _handle_request_body(method, *args, **kwargs):
