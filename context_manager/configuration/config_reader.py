@@ -1,17 +1,14 @@
 import configparser
 import os
 
-from context_manager import Component
 
-
-@Component
 class ConfigReader:
     _config = configparser.ConfigParser()
     _current_path = os.path.dirname(__file__)
-    _config_file = os.path.join(_current_path, "../resources/config.ini")
+    _main_file = os.path.join(_current_path, "../resources/config.ini")
 
     def __init__(self, config_file=None):
-        self.config_file = config_file or self._config_file
+        self.config_file = config_file or self._main_file
         self._config.read(self.config_file)
 
     @property
@@ -26,3 +23,12 @@ class ConfigReader:
     def read(self, key, origin=None):
         origin = origin or self._config
         return origin[key]
+
+    def start(self, context_manager, bean):
+        ...
+
+    def __hash__(self):
+        return hash(self.config_file)
+
+    def __eq__(self, other):
+        return self.config_file == other.config_file

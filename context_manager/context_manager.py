@@ -12,6 +12,7 @@ from context_manager.configuration.config_reader import ConfigReader
 class ContextManager:
     beans = dict()
     reader = ConfigReader()
+    beans[reader] = reader
     app = None
 
     folders = reader.read(BaseKey.FOLDERS)
@@ -90,7 +91,9 @@ class ContextManager:
             if route is not None and methods is not None:
                 wrapped_method = partial(cls._handle_request_body, method)
                 wrapped_method.__name__ = method_name + '_wrapped'
-                route_path = prefix.rstrip('/') + route.rstrip('/')
+                paths = prefix.split('/') + route.split('/')
+                paths = [p for p in paths if p != ""]
+                route_path = "/" + "/".join(paths)
                 cls.app.route(route_path, methods=methods)(wrapped_method)
 
     @classmethod
