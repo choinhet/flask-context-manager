@@ -1,7 +1,10 @@
 import configparser
 import os
 
+from context_manager import Component
 
+
+@Component
 class ConfigReader:
     _config = configparser.ConfigParser()
     _current_path = os.path.dirname(__file__)
