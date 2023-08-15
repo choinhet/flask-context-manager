@@ -18,4 +18,4 @@ class BaseBean(ABC):
         return hash(self.child_class)
 
     def __eq__(self, other):
-        return self.child_class == other.child_class
+        return getattr(self, "child_class", None) == getattr(other, "child_class", None)

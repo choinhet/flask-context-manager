@@ -12,7 +12,7 @@ from context_manager.configuration.config_reader import ConfigReader
 class ContextManager:
     beans = dict()
     reader = ConfigReader()
-    beans[reader] = reader
+    beans[ConfigReader] = reader
     app = None
 
     folders = reader.read(BaseKey.FOLDERS)
@@ -76,7 +76,7 @@ class ContextManager:
 
     @classmethod
     def _inspection_is_empty(cls, param):
-        return type(param.annotation) == type(param.empty)
+        return param.annotation == param.empty
 
     @classmethod
     def is_function_or_method(cls, element):
@@ -119,7 +119,7 @@ class ContextManager:
 
         try:
             if annotation in cls.beans.keys():
-                return cls.beans[annotation].start()
+                return cls.beans[annotation].start(cls, cls.beans[annotation])
         except RuntimeError:
             raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
 

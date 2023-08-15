@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import configparser
 import os
 
@@ -6,9 +8,15 @@ class ConfigReader:
     _config = configparser.ConfigParser()
     _current_path = os.path.dirname(__file__)
     _main_file = os.path.join(_current_path, "../resources/config.ini")
+    root_dir = os.path.abspath(os.curdir)
 
     def __init__(self, config_file=None):
         self.config_file = config_file or self._main_file
+        self._config.read(self.config_file)
+        self.child_class = self
+
+    def set_path_from_root(self, path):
+        self.config_file = os.path.join(self.root_dir, path)
         self._config.read(self.config_file)
 
     @property
@@ -20,11 +28,14 @@ class ConfigReader:
         current_item = origin[key]
         return [item.strip() for item in current_item.strip('[]').split(',')]
 
-    def read(self, key, origin=None):
+    def read(self, *keys, origin=None):
         origin = origin or self._config
-        return origin[key]
+        for key in keys:
+            origin = origin[key]
+        return origin
 
-    def start(self, context_manager, bean):
+    @staticmethod
+    def start(context_manager, bean):
         ...
 
     def __hash__(self):
@@ -32,3 +43,6 @@ class ConfigReader:
 
     def __eq__(self, other):
         return self.config_file == other.config_file
+
+
+ConfigReader.child_class = ConfigReader
