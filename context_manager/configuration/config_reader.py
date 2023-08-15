@@ -5,7 +5,11 @@ import os
 class ConfigReader:
     _config = configparser.ConfigParser()
     _current_path = os.path.dirname(__file__)
-    _config.read(os.path.join(_current_path, "../resources/config.ini"))
+    _config_file = os.path.join(_current_path, "../resources/config.ini")
+
+    def __init__(self, config_file=None):
+        self.config_file = config_file or self._config_file
+        self._config.read(self.config_file)
 
     @property
     def config(self):
