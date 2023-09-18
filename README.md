@@ -1,49 +1,111 @@
 # Flask Context Manager
 
-The Flask Context Manager is a project that provides an inversion of control (IoC) container for Flask applications. It offers features similar to the Spring Boot framework, including dependency injection and route management.
+The Flask Context Manager is a project that provides an inversion of control (IoC) container for Flask applications. It offers features reminiscent of the Spring Boot framework, including dependency injection, route management, configuration reading, and more.
 
 ## Features
 
-- **Dependency Injection**: The Context Manager supports automatic dependency injection. It allows you to annotate classes with `@Service`, `@Controller`, or `@Component` and automatically manages their lifecycle. These instances can be injected into other classes through the constructor, reducing the need for manual wiring.
+- **Dependency Injection**: Enjoy automatic dependency injection. Classes with `@Service`, `@Controller`, or `@Component` are managed automatically, and their dependencies are resolved via constructors.
 
-- **Route Management**: The Context Manager also offers route annotations similar to Spring Boot. You can use `@get_mapping`, `@post_mapping`, `@put_mapping`, and `@delete_mapping` to define routes at the method level.
+- **Route Management**: Define routes at the method level using `@get_mapping`, `@post_mapping`, `@put_mapping`, `@delete_mapping`. The `@rest_mapping` adds a prefix to all routes in a controller.
 
-- **Rest Mapping**: The `@rest_mapping` decorator allows you to add a prefix to all routes in a controller.
+- **Dynamic URL Handling**: With dynamic URL routing, methods can easily fetch parameters from URLs.
+
+- **POST Method Parameters**: Design POST methods effortlessly by specifying parameters directly in the method.
+
+- **Configuration Reading**: Extract values from configuration files seamlessly. Use `@auto_set_key` for auto-generating keys to access configurations.
+
 
 ## Usage
 
-To use the Context Manager, your application should have separate directories for services (`/service`), controllers (`/controller`), and components (`/component`).
+Structure your application with directories for services (`/service`), controllers (`/controller`), and components (`/component`).
 
-Here's an example of how you might define a service and a controller:
+### Basic Example:
 
+`service/hello_service.py`
 ```python
-# service/hello_service.py
-from context_manager.context_classes import service
-
 @Service
 class HelloService:
     def get_hello(self):
         return "Hello, World!"
+```
 
-# controller/hello_controller.py
-from context_manager.context_classes import controller
-from context_manager.routes import get_mapping
-from service.hello_service import HelloService
-
+`controller/hello_controller.py`
+```python
 @Controller
 @rest_mapping('/api/v1')
 class HelloController:
-    def __init__(self, hello_service: HelloService):
+    def __init__(self, hello_service):
         self.hello_service = hello_service
 
     @get_mapping('hello')
     def hello(self):
         return self.hello_service.get_hello()
-
 ```
 
-In your main application file, you need to start the Context Manager before running the Flask application:
+## Handling Dynamic URL Parameters:
 
+The Flask Context Manager supports dynamic parameters in routes just like native Flask. To capture a portion of the URL as a variable, you can use the `<variable_name>` syntax in your mapping.
+
+### Example:
+
+`controller/user_controller.py`
+```python
+@Controller
+@rest_mapping('/api/v1')
+class UserController:
+
+    @get_mapping('user/<user_id>')
+    def get_user_by_id(self, user_id):
+        return f"Fetching info for user with ID: {user_id}"
+```
+
+### POST Method with Direct Parameters:
+
+`controller/test_controller.py`
+```python
+@Controller
+class TestController:
+
+    @post_mapping("/test")
+    def my_post(body):
+        return "This is a cool body:" + str(body)
+```
+
+### Reading Configuration:
+
+Configure the `ConfigReader` within your service or component to pull values from configurations. For easier configuration key access, employ `@auto_set_key`.
+
+`service/request_service.py`
+```python
+@Service
+class RequestService:
+    def __init__(self, config_reader):
+        self.config_reader = config_reader
+        self.config_reader.set_path_from_root("src/resources/config.ini")
+
+    def list_trades(self):
+        trading_url = self.config_reader.read(UrlKeys.ENDPOINT)
+        # ... rest of the method ...
+```
+
+`context_manager/config_keys.py`
+```python
+@auto_set_key
+class UrlKeys:
+    ENDPOINT: str
+```
+
+`src/resources/config.ini`
+```
+[URLS]
+ENDPOINT = https://www.google.com
+```
+
+### Starting the Application:
+
+In the main application file, initiate the Context Manager:
+
+`app.py`
 ```python
 from flask import Flask
 from context_manager.context_manager import ContextManager
@@ -53,11 +115,11 @@ ContextManager.append(app)
 
 if __name__ == "__main__":
     ContextManager.start()
-    app.run(debug=True)
 ```
 
 ## Requirements
 
-This project requires Python 3.6+ and Flask.
+- Python 3.6+ 
+- Flask
 
-Please note that this project is for educational purposes and may not be suitable for production use. Always thoroughly test and review the code before using it in a production environment.
+> **Note**: This project is mainly for educational purposes. Ensure thorough testing and code review before deploying in a production setting.
