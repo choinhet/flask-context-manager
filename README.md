@@ -34,7 +34,7 @@ class HelloService:
 @Controller
 @rest_mapping('/api/v1')
 class HelloController:
-    def __init__(self, hello_service):
+    def __init__(self, hello_service: HelloService):
         self.hello_service = hello_service
 
     @get_mapping('hello')
