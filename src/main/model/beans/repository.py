@@ -1,4 +1,4 @@
-from context_manager.beans.base_bean import BaseBean
+from src.main.model.beans.base_bean import BaseBean
 
 
 class Repository(BaseBean):

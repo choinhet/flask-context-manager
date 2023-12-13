@@ -1,4 +1,4 @@
-from context_manager.beans.service import Service
+from src.main.model.beans.service import Service
 
 
 @Service

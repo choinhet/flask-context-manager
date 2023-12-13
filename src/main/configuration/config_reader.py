@@ -5,10 +5,9 @@ import os
 
 
 class ConfigReader:
-    _config = configparser.ConfigParser()
-    _current_path = os.path.dirname(__file__)
-    _main_file = os.path.join(_current_path, "../resources/config.ini")
     root_dir = os.path.abspath(os.curdir)
+    _main_file = os.path.join(root_dir, "src/main/resources/config.ini")
+    _config = configparser.ConfigParser()
 
     def __init__(self, config_file=None):
         self.config_file = config_file or self._main_file

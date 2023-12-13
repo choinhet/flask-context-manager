@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from context_manager.context_manager import ContextManager
+from src.main.core.context_manager import ContextManager
 
 
 class BaseBean(ABC):

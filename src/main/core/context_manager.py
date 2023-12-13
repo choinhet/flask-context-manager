@@ -5,8 +5,8 @@ from functools import partial
 
 from flask import request
 
-from context_manager.config_keys import BaseKey
-from context_manager.configuration.config_reader import ConfigReader
+from src.main.configuration.config_reader import ConfigReader
+from src.main.model.config_keys import BaseKey
 
 
 class ContextManager:
