@@ -15,12 +15,16 @@ class ContextManager:
     beans[ConfigReader] = reader
     app = None
 
-    folders = reader.read(BaseKey.FOLDERS)
-    ignore_patterns = reader.read_list(BaseKey.IGNORE, origin=folders)
+    @classmethod
+    def set_reader(cls, reader):
+        cls.reader = reader
+        cls.beans[ConfigReader] = reader
 
     @classmethod
     def start(cls):
-        cls.import_all_modules(ignore_patterns=cls.ignore_patterns)
+        folders = cls.reader.read(BaseKey.FOLDERS)
+        ignore_patterns = cls.reader.read_list(BaseKey.IGNORE, origin=folders)
+        cls.import_all_modules(ignore_patterns=ignore_patterns)
         cls.start_all_modules()
         cls.app.run(debug=True)
 
