@@ -24,8 +24,13 @@ def setup_project_structure():
     for dir in base_dirs:
         create_directory(dir)
 
-    create_file('src/main/resources/config.ini')
-    create_file('src/test/resources/config.ini')
+    config_content = (
+        "[FOLDERS]\n"
+        "IGNORE=[venv, .idea, .test.py, build, dist, .egg-info]\n"
+    )
+
+    create_file('src/main/resources/config.ini', config_content)
+    create_file('src/test/resources/config.ini', config_content)
 
     app_content = (
         "from flask import Flask\n\n"
