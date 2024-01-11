@@ -1,5 +1,6 @@
 from flask_context_manager.src.main.configuration.config_reader import *
 from flask_context_manager.src.main.core.context_manager import *
+from flask_context_manager.src.main.core.routes import *
 from flask_context_manager.src.main.model.beans.component import *
 from flask_context_manager.src.main.model.beans.configuration import *
 from flask_context_manager.src.main.model.beans.controller import *
