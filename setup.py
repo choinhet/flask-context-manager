@@ -29,6 +29,10 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    entry_points="""
+        [console_scripts]
+        flask_context_manager=flask_context_manager.flask_context_manager:main
+    """,
     python_requires=">=3.10",
     zip_safe=True,
     include_package_data=True
