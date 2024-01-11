@@ -8,6 +8,14 @@ The Flask Context Manager is a project that provides an inversion of control (Io
 pip install flask-context-manager
 ```
 
+## Initialization (Optional)
+
+In the terminal, run the following command to initialize folder structure:
+
+```bash
+flask_context_manager start
+```
+
 ## Features
 
 - **Dependency Injection**: Enjoy automatic dependency injection. Classes with `@Service`, `@Controller`, or `@Component` are managed automatically, and their dependencies are resolved via constructors.
