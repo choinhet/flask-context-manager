@@ -1,5 +1,5 @@
 from config.configuration import SQLAlchemySession
-from src.main.model.beans.repository import Repository
+from flask_context_manager.src.main.model.beans.repository import Repository
 
 
 @Repository

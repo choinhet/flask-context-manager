@@ -1,4 +1,4 @@
-from src.main.model.beans.service import Service
+from flask_context_manager.src.main.model.beans.service import Service
 
 
 @Service

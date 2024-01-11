@@ -1,6 +1,6 @@
-from src.main.core.routes import get_mapping, rest_mapping, post_mapping
-from src.main.model.beans.controller import Controller
-from src.test.sample_app.service.hello_service import HelloService
+from flask_context_manager.src.main.core.routes import get_mapping, rest_mapping, post_mapping
+from flask_context_manager.src.main.model.beans.controller import Controller
+from flask_context_manager.src.test.sample_app.service.hello_service import HelloService
 
 
 @Controller

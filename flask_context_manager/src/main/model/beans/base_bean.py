@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.main.core.context_manager import ContextManager
+from flask_context_manager.src.main.core.context_manager import ContextManager
 
 
 class BaseBean(ABC):
