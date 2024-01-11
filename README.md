@@ -2,6 +2,12 @@
 
 The Flask Context Manager is a project that provides an inversion of control (IoC) container for Flask applications. It offers features reminiscent of the Spring Boot framework, including dependency injection, route management, configuration reading, and more.
 
+## Installation
+
+```bash
+pip install flask-context-manager
+```
+
 ## Features
 
 - **Dependency Injection**: Enjoy automatic dependency injection. Classes with `@Service`, `@Controller`, or `@Component` are managed automatically, and their dependencies are resolved via constructors.
