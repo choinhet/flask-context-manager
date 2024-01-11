@@ -2,7 +2,7 @@ import sys
 
 from setuptools import setup, find_packages
 
-VERSION = "1.0.9"
+VERSION = "1.0.10"
 
 with open("README.md", "r") as fh:
     readme = fh.read()
@@ -23,7 +23,6 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     install_requires=["flask>=3.0.0"],
-    keywords=["context", "context manager", "spring", "python", "ioc", "di", "dependency injection", "flask", "auto route"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -34,6 +33,7 @@ setup(
         flask_context_manager=flask_context_manager.flask_context_manager:main
     """,
     python_requires=">=3.10",
-    zip_safe=True,
-    include_package_data=True
+    include_package_data=True,
+    package_data={"": ["*.ttf", "*.png", "*.pdf", "*.jar", "*.json", "*.ini"]}
+
 )
