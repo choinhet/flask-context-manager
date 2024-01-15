@@ -26,7 +26,7 @@ def setup_project_structure():
 
     config_content = (
         "[FOLDERS]\n"
-        "IGNORE=[venv, .idea, .test.py, build, dist, .egg-info]\n"
+        "IGNORE=[venv, .idea, .test.py, build, dist, .egg-info, site-packages]\n"
     )
 
     create_file('src/main/resources/config.ini', config_content)
