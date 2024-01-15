@@ -6,7 +6,8 @@ import os
 
 class ConfigReader:
     root_dir = os.path.abspath(os.curdir)
-    _main_file = os.path.join(root_dir, "resources/config.ini")
+    lib_dir = os.path.dirname(os.path.dirname(__file__))
+    _main_file = os.path.join(lib_dir, "resources/config.ini")
     _config = configparser.ConfigParser()
 
     def __init__(self, config_file=None):
