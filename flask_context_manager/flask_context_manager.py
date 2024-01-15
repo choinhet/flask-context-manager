@@ -36,9 +36,11 @@ def setup_project_structure():
         "from flask import Flask\n\n"
         "from flask_context_manager import ContextManager\n\n"
         "app = Flask(__name__)\n"
-        "ContextManager.append(app)\n"
-        "ContextManager.start()\n"
+        "ContextManager.append(app)\n\n"
+        "if __name__ == '__main__':\n"
+        "    ContextManager.start()\n"
     )
+
     create_file('app.py', app_content)
 
     print("Flask Context Manager structure successfully created!")
