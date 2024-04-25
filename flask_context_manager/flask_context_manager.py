@@ -10,6 +10,7 @@ def create_directory(path):
 def create_file(path, content=""):
     with open(path, 'w') as file:
         file.write(content)
+        file.close()
 
 
 def setup_project_structure():
@@ -21,16 +22,8 @@ def setup_project_structure():
         'src/test/resources'
     ]
 
-    for dir in base_dirs:
-        create_directory(dir)
-
-    config_content = (
-        "[FOLDERS]\n"
-        "IGNORE=[venv, .idea, .test.py, build, dist, .egg-info, site-packages]\n"
-    )
-
-    create_file('src/main/resources/config.ini', config_content)
-    create_file('src/test/resources/config.ini', config_content)
+    for dir_ in base_dirs:
+        create_directory(dir_)
 
     app_content = (
         "from flask import Flask\n\n"
@@ -38,7 +31,7 @@ def setup_project_structure():
         "app = Flask(__name__)\n"
         "ContextManager.append(app)\n\n"
         "if __name__ == '__main__':\n"
-        "    ContextManager.start()\n"
+        "    ContextManager.start(debug=True)\n"
     )
 
     create_file('app.py', app_content)

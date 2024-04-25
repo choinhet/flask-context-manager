@@ -7,8 +7,7 @@ from functools import partial
 from pathlib import Path
 
 from flask import request
-
-from flask_context_manager.src.main.configuration.config_reader import ConfigReader
+from tython.src.main.config_reader.config_reader import ConfigReader
 
 
 class ContextManager:
@@ -26,7 +25,7 @@ class ContextManager:
         cls.beans[ConfigReader] = reader
 
     @classmethod
-    def start(cls):
+    def start(cls, debug=True):
         ignore_patterns = ["venv", ".idea", ".test.py", "build", "dist", ".egg-info", "site-packages", ".json", ".git", "__pycache__"]
         cls.import_all_modules(ignore_patterns=ignore_patterns)
         cls.start_all_modules()

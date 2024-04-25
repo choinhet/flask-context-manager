@@ -26,19 +26,17 @@ flask_context_manager start
 
 - **POST Method Parameters**: Design POST methods effortlessly by specifying parameters directly in the method.
 
-- **Configuration Reading**: Extract values from configuration files seamlessly. Use `@auto_set_key` for auto-generating keys to access configurations.
-
-
 ## Usage
 
 Structure your application with directories for services (`/service`), controllers (`/controller`), and components (`/component`).
 
-### Basic Example:
+### Basic Example
 
 `service/hello_service.py`
 ```python
 @Service
 class HelloService:
+    
     def get_hello(self):
         return "Hello, World!"
 ```
@@ -48,6 +46,7 @@ class HelloService:
 @Controller
 @rest_mapping('/api/v1')
 class HelloController:
+    
     def __init__(self, hello_service: HelloService):
         self.hello_service = hello_service
 
@@ -55,6 +54,25 @@ class HelloController:
     def hello(self):
         return self.hello_service.get_hello()
 ```
+
+### Configuration
+
+Similar to Spring Boot, we can add the `@Configuration` annotation so that any annotated `@Bean` methods are automatically registered in the context as soon as it starts.
+
+`config/app_config.py`
+```python
+@Configuration
+class AppConfig:
+    
+    @Bean
+    def my_jackson_copy(self):
+        return MyJacksonCopy()
+
+    @Bean
+    def i_just_run_and_return_nothing_and_its_ok(self):
+        print("First!!!")
+```
+
 
 ## Handling Dynamic URL Parameters:
 
@@ -83,36 +101,6 @@ class TestController:
     @post_mapping("/test")
     def my_post(body):
         return "This is a cool body:" + str(body)
-```
-
-### Reading Configuration:
-
-Configure the `ConfigReader` within your service or component to pull values from configurations. For easier configuration key access, employ `@auto_set_key`.
-
-`service/request_service.py`
-```python
-@Service
-class RequestService:
-    def __init__(self, config_reader):
-        self.config_reader = config_reader
-        self.config_reader.set_path_from_root("src/resources/config.ini")
-
-    def list_trades(self):
-        trading_url = self.config_reader.read(UrlKeys.ENDPOINT)
-        # ... rest of the method ...
-```
-
-`context_manager/config_keys.py`
-```python
-@auto_set_key
-class UrlKeys:
-    ENDPOINT: str
-```
-
-`src/resources/config.ini`
-```
-[URLS]
-ENDPOINT = https://www.google.com
 ```
 
 ### Starting the Application:
