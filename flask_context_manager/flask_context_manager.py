@@ -13,6 +13,11 @@ def create_file(path, content=""):
         file.close()
 
 
+def add_init_file(path):
+    init_path = os.path.join(path, '__init__.py')
+    create_file(init_path)
+
+
 def setup_project_structure():
     base_dirs = [
         'src/main/config',
@@ -24,6 +29,7 @@ def setup_project_structure():
 
     for dir_ in base_dirs:
         create_directory(dir_)
+        add_init_file(dir_)
 
     app_content = (
         "from flask import Flask\n\n"
