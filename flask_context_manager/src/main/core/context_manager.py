@@ -7,7 +7,6 @@ from functools import partial
 from pathlib import Path
 
 from flask import request
-from tython.src.main.config_reader.config_reader import ConfigReader
 
 
 class ContextManager:
@@ -15,14 +14,7 @@ class ContextManager:
     log = logging.getLogger("ContextManager")
     beans = dict()
     root_dir = "."
-    reader = ConfigReader()
-    beans[ConfigReader] = reader
     app = None
-
-    @classmethod
-    def set_reader(cls, reader):
-        cls.reader = reader
-        cls.beans[ConfigReader] = reader
 
     @classmethod
     def start(cls, debug=True):

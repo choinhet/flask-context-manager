@@ -1,6 +1,6 @@
 from typing import TypeVar, Type, Generic
 
-from src.main.model.beans.base_bean import BaseBean
+from flask_context_manager.src.main.model.beans.base_bean import BaseBean
 
 T = TypeVar('T')
 
