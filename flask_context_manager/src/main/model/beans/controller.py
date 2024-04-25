@@ -7,4 +7,3 @@ class Controller(BaseBean):
         kwargs = context.get_injections(bean)
         context.beans[self] = bean(**kwargs)
         context.register_routes(context.beans[self])
-

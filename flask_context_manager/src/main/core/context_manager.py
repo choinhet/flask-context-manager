@@ -1,8 +1,10 @@
 import importlib
 import inspect
+import logging
 import os
 from collections import OrderedDict
 from functools import partial
+from pathlib import Path
 
 from flask import request
 
@@ -10,11 +12,13 @@ from flask_context_manager.src.main.configuration.config_reader import ConfigRea
 
 
 class ContextManager:
+    possible_annotations = ["@Configuration", "@Bean", "@Controller", "@Service", "@Repository", "@Component"]
+    log = logging.getLogger("ContextManager")
     beans = dict()
     root_dir = "."
+    reader = ConfigReader()
+    beans[ConfigReader] = reader
     app = None
-    debug = True
-    possible_annotations = ["@Configuration", "@Controller", "@Service", "@Repository", "@Component"]
 
     @classmethod
     def set_reader(cls, reader):
@@ -26,11 +30,11 @@ class ContextManager:
         ignore_patterns = ["venv", ".idea", ".test.py", "build", "dist", ".egg-info", "site-packages", ".json", ".git", "__pycache__"]
         cls.import_all_modules(ignore_patterns=ignore_patterns)
         cls.start_all_modules()
-        cls.app.run(debug=cls.debug)
+        cls.app.run(debug)
 
     @staticmethod
-    def is_ignored(path, ignore_patterns):
-        return any(pattern in path for pattern in ignore_patterns)
+    def is_ignored(path, ignore_patterns) -> bool:
+        return any(pattern in str(path) for pattern in ignore_patterns)
 
     @classmethod
     def get_module_name_from_path(cls, path):
@@ -41,26 +45,32 @@ class ContextManager:
     @classmethod
     def import_module_from_path(cls, file_path):
         with open(file_path) as file:
-            file_txt = file.read()
+            try:
+                file_txt = file.read()
+            except UnicodeDecodeError:
+                return
         file.close()
 
         if any(annotation in file_txt for annotation in cls.possible_annotations):
             module_name = cls.get_module_name_from_path(file_path)
             try:
+                cls.log.info(f"Importing {module_name}")
                 importlib.import_module(module_name)
             except Exception as e:
-                print(f"Failed to import {module_name}: {e}")
+                cls.log.info(f"Failed to import {module_name}: {e}")
 
     @classmethod
-    def import_all_modules(cls, root_dir=".", ignore_patterns=None):
-        for dir_path, _, filenames in os.walk(root_dir):
-            if cls.is_ignored(dir_path, ignore_patterns or []):
-                continue
-
-            for filename in filenames:
-                if filename.endswith('.py') and not cls.is_ignored(filename, ignore_patterns):
-                    file_path = os.path.join(dir_path, filename)
-                    cls.import_module_from_path(file_path)
+    def import_all_modules(cls, root_dir: str | Path = ".", ignore_patterns=None):
+        if not isinstance(root_dir, Path):
+            root_dir = Path(root_dir)
+        for file in root_dir.iterdir():
+            if file.is_dir():
+                if cls.is_ignored(file, ignore_patterns or []):
+                    continue
+                cls.import_all_modules(file, ignore_patterns)
+            else:
+                if str(file).endswith('.py') and not cls.is_ignored(file, ignore_patterns):
+                    cls.import_module_from_path(file)
 
     @classmethod
     def start_all_modules(cls):
@@ -131,11 +141,10 @@ class ContextManager:
 
     @classmethod
     def _get_dependency(cls, annotation, obj):
-
         if annotation == obj:
             raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
 
-        instantiated_beans = [bean for bean in cls.beans.values() if type(bean) != type]
+        instantiated_beans = [bean for bean in cls.beans.values() if not isinstance(type(bean), type)]
         dependency_dict = {bean.__class__: bean for bean in instantiated_beans}
 
         if annotation in dependency_dict.keys():
