@@ -16,6 +16,8 @@ In the terminal, run the following command to initialize folder structure:
 flask_context_manager start
 ```
 
+This will create  a folder structure so you can add **inside** your current package.
+
 ## Features
 
 - **Dependency Injection**: Enjoy automatic dependency injection. Classes with `@Service`, `@Controller`, or `@Component` are managed automatically, and their dependencies are resolved via constructors.
