@@ -1,4 +1,4 @@
-from src.main.util.key_utility import KeyUtility
+from flask_context_manager.src.main.util.key_utility import KeyUtility
 
 
 @KeyUtility.auto_set_key

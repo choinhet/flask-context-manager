@@ -2,29 +2,33 @@ import importlib
 import inspect
 import logging
 import os
+from collections import OrderedDict
 from functools import partial
 from pathlib import Path
 
 from flask import request
 
-from src.main.configuration.config_reader import ConfigReader
-from src.main.model.config_keys import BaseKey
+from flask_context_manager.src.main.configuration.config_reader import ConfigReader
 
 
 class ContextManager:
-    possible_annotations = ["@Controller", "@Service", "@Repository", "@Configuration", "@Component"]
+    possible_annotations = ["@Configuration", "@Bean", "@Controller", "@Service", "@Repository", "@Component"]
     log = logging.getLogger("ContextManager")
     beans = dict()
     root_dir = "."
     reader = ConfigReader()
     beans[ConfigReader] = reader
     app = None
-    folders = reader.read(BaseKey.FOLDERS)
-    ignore_patterns = reader.read_list(BaseKey.IGNORE, origin=folders)
 
     @classmethod
-    def start(cls, debug=True):
-        cls.import_all_modules(ignore_patterns=cls.ignore_patterns)
+    def set_reader(cls, reader):
+        cls.reader = reader
+        cls.beans[ConfigReader] = reader
+
+    @classmethod
+    def start(cls):
+        ignore_patterns = ["venv", ".idea", ".test.py", "build", "dist", ".egg-info", "site-packages", ".json", ".git", "__pycache__"]
+        cls.import_all_modules(ignore_patterns=ignore_patterns)
         cls.start_all_modules()
         cls.app.run(debug)
 
@@ -70,9 +74,19 @@ class ContextManager:
 
     @classmethod
     def start_all_modules(cls):
-        # cls._order_modules()
+        cls.order_beans()
         for clz, bean in cls.beans.items():
             clz.start(cls, bean)
+
+    @classmethod
+    def order_beans(cls):
+        def get_bean_place(bean):
+            bean_name = bean[0].__class__.__name__
+            if bean_name in cls.possible_annotations:
+                return cls.possible_annotations.index("@" + bean_name)
+            return len(cls.possible_annotations)
+
+        cls.beans = OrderedDict(sorted(cls.beans.items(), key=lambda bean: get_bean_place(bean)))
 
     @classmethod
     def accept(cls, dict_to_accept):
@@ -80,12 +94,17 @@ class ContextManager:
 
     @classmethod
     def get_injections(cls, obj):
-        sig = inspect.signature(obj.__init__)
+        instance_fun = obj.__init__
+        if inspect.isfunction(obj) or inspect.ismethod(obj):
+            instance_fun = obj
+        sig = inspect.signature(instance_fun)
         kwargs = {}
         for name, param in sig.parameters.items():
             if name == 'self' or ContextManager._inspection_is_empty(param):
                 continue
-            annotation = obj.__init__.__annotations__[name].child_class
+            annotation = instance_fun.__annotations__[name]
+            if hasattr(annotation, "child_class"):
+                annotation = annotation.child_class
             kwargs[name] = cls._get_dependency(annotation, obj)
         return kwargs
 
@@ -146,3 +165,11 @@ class ContextManager:
         else:
             new_kwargs = kwargs
         return method(*args, **new_kwargs)
+
+    @classmethod
+    def instance(cls, obj_type):
+        if obj_type in cls.beans.keys():
+            return cls.beans[obj_type]
+        instance = obj_type(**cls.get_injections(obj_type))
+        cls.beans[obj_type] = instance
+        return instance
