@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='flask-context-manager',
-    version='1.0.0',
+    version='1.1.0',
     packages=find_packages(),
     url='https://github.com/rxonhe/flask-context-manager',
     license='MIT',
