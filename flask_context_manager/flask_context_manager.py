@@ -21,11 +21,18 @@ def add_init_file(path):
 def setup_project_structure():
     base_dirs = [
         'src',
+
         'src/main',
+        'src/test',
+
         'src/main/config',
         'src/main/service',
         'src/main/controller',
         'src/main/resources',
+
+        'src/test/config',
+        'src/test/service',
+        'src/test/controller',
         'src/test/resources'
     ]
 
