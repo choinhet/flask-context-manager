@@ -66,7 +66,7 @@ class ContextManager:
     @classmethod
     def start_all_modules(cls):
         cls.order_beans()
-        for clz, bean in cls.beans.items():
+        for clz, bean in dict(cls.beans).items():
             clz.start(cls, bean)
 
     @classmethod
@@ -143,7 +143,7 @@ class ContextManager:
 
         try:
             if annotation in cls.beans.values():
-                return cls.beans[annotation].start(cls, cls.beans[annotation])
+                return cls.beans[annotation]
         except RuntimeError:
             raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
 
