@@ -10,7 +10,7 @@ from flask import request
 
 
 class ContextManager:
-    possible_annotations = ["@Configuration", "@Bean", "@Component", "@Repository", "@Service", "@Controller" ]
+    possible_annotations = ["@Configuration", "@Bean", "@Component", "@Repository", "@Service", "@Controller"]
     log = logging.getLogger("ContextManager")
     beans = dict()
     root_dir = "."
