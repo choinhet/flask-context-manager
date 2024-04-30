@@ -16,4 +16,4 @@ class Component(BaseBean, Generic[T]):
 
     def start(self, context, bean):
         kwargs = context.get_injections(bean)
-        context.beans[self] = bean(**kwargs)
+        context.beans[self.child_class] = bean(**kwargs)

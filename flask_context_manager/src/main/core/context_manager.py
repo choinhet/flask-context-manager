@@ -10,7 +10,7 @@ from flask import request
 
 
 class ContextManager:
-    possible_annotations = ["@Configuration", "@Bean", "@Controller", "@Service", "@Repository", "@Component"]
+    possible_annotations = ["@Configuration", "@Bean", "@Component", "@Repository", "@Service", "@Controller" ]
     log = logging.getLogger("ContextManager")
     beans = dict()
     root_dir = "."
@@ -21,7 +21,7 @@ class ContextManager:
         ignore_patterns = ["venv", ".idea", ".test.py", "build", "dist", ".egg-info", "site-packages", ".json", ".git", "__pycache__"]
         cls.import_all_modules(ignore_patterns=ignore_patterns)
         cls.start_all_modules()
-        cls.app.run(debug)
+        cls.app.run(debug=debug)
 
     @staticmethod
     def is_ignored(path, ignore_patterns) -> bool:
@@ -142,7 +142,7 @@ class ContextManager:
             return dependency_dict[annotation]
 
         try:
-            if annotation in cls.beans.keys():
+            if annotation in cls.beans.values():
                 return cls.beans[annotation].start(cls, cls.beans[annotation])
         except RuntimeError:
             raise RuntimeError(f"Dependency {annotation} not found for object {obj.__name__}")
