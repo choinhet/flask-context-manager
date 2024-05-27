@@ -135,7 +135,7 @@ class ContextManager:
         if annotation == obj:
             raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
 
-        instantiated_beans = [bean for bean in cls.beans.values() if not isinstance(type(bean), type)]
+        instantiated_beans = [bean for bean in cls.beans.values() if not isinstance(bean, type)]
         dependency_dict = {bean.__class__: bean for bean in instantiated_beans}
 
         if annotation in dependency_dict.keys():
