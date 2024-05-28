@@ -18,5 +18,6 @@ class Configuration(BaseBean):
             result = bean(class_instance, **current_injections)
             if result is None:
                 continue
-            context.beans[type(result)] = result
+            return_type = bean.fun.__annotations__.get("return") or type(result)
+            context.beans[return_type] = result
             context.beans[bean.fun.__name__] = result
