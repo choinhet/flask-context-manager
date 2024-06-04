@@ -13,7 +13,3 @@ class Component(BaseBean, Generic[T]):
 
     def __call__(self, *args, **kwargs) -> T:
         return self._cls(*args, **kwargs)
-
-    def start(self, context, bean):
-        kwargs = context.get_injections(bean)
-        context.beans[self.child_class] = bean(**kwargs)

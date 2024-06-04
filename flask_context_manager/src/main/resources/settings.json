@@ -1,0 +1,22 @@
+{
+    "ignored": [
+        "venv",
+        ".idea",
+        ".test.py",
+        "build",
+        "dist",
+        ".egg-info",
+        "site-packages",
+        ".json",
+        ".git",
+        "__pycache__"
+    ],
+    "annotations": [
+        "@Configuration",
+        "@Bean",
+        "@Component",
+        "@Repository",
+        "@Service",
+        "@Controller"
+    ]
+}
