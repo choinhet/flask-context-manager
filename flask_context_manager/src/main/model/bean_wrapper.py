@@ -9,7 +9,7 @@ T = TypeVar("T")
 
 @dataclass
 class NamedParameter:
-    key: types.MethodType | types.FunctionType
+    clazz: types.MethodType | types.FunctionType
     name: str
 
 

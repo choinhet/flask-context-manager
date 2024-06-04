@@ -44,6 +44,7 @@ class ContextManager:
     @classmethod
     def checked_app(cls) -> Flask:
         if cls.app is None:
+            cls.log_statistics()
             raise RuntimeError("Tried to run app before setting it up with a Flask app.\nPlease use 'ContextManager.append(flask_app)'")
         return cls.app
 
@@ -73,12 +74,12 @@ class ContextManager:
             importlib.import_module(module_name)
             cls.imported_modules.append(module_name)
         except Exception as e:
-            raise e
             cls.log.error(f"Failed to import module named '{file_path}': '{e.with_traceback(None)}'")
 
     @classmethod
     def _import_all_modules(cls, filename: str | Path = ROOT_DIR):
         if not (isinstance(filename, Path) or isinstance(filename, str)):
+            cls.log_statistics()
             raise RuntimeError(f"Filename type not supported: '{type(filename)}'")
 
         if isinstance(filename, str):
@@ -96,18 +97,18 @@ class ContextManager:
     @classmethod
     def _start_all_modules(cls):
         graph = nx.DiGraph()
-        bean_methods = flatten(cls.beans.values())
-        for bean_method in list(bean_methods):
-            graph.add_node(bean_method)
+        for bean in list(cls.all_beans()):
+            graph.add_node(bean)
 
-        for bean_method in list(bean_methods):
-            dependencies = {dep.name for dep in bean_method.dependencies}
+        for bean in list(cls.all_beans()):
+            dependencies = {dep.clazz for dep in bean.dependencies}
             for dependency in dependencies:
                 dependency_providers = cls.beans.get(dependency, [])
                 for dependency_provider in dependency_providers:
-                    graph.add_edge(bean_method, dependency_provider)
+                    graph.add_edge(bean, dependency_provider)
 
-        ordered_bean_methods: List[BeanWrapper] = list(nx.topological_sort(graph))
+        nodes: List[BeanWrapper] = list(nx.topological_sort(graph))
+        ordered_bean_methods = cls.sort_by_dependencies(nodes)
 
         for bean in ordered_bean_methods:
             new_instance = cls._get_instance_by_bean_wrapper(bean)
@@ -129,7 +130,7 @@ class ContextManager:
             annotation = instance_fun.__annotations__[name]
             if hasattr(annotation, "child_class"):
                 annotation = annotation.child_class
-            kwargs.append(NamedParameter(name=name, key=annotation))
+            kwargs.append(NamedParameter(name=name, clazz=annotation))
         return kwargs
 
     @classmethod
@@ -168,6 +169,7 @@ class ContextManager:
     @classmethod
     def _get_dependency(cls, annotation, obj) -> object:
         if annotation == obj:
+            cls.log_statistics()
             raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
 
         instantiated_beans = [bean for bean in cls.beans.values() if not isinstance(bean, type)]
@@ -176,6 +178,7 @@ class ContextManager:
         try:
             return dependency_dict[annotation]
         except RuntimeError:
+            cls.log_statistics()
             raise RuntimeError(f"Dependency '{annotation}' not found for object '{obj.__name__}'")
 
     @staticmethod
@@ -199,6 +202,7 @@ class ContextManager:
         if bean_wrapper.is_method and bean_wrapper.bean_class is not None:
             current_instance = cls.instance(bean_wrapper.bean_class.return_type)
             if current_instance is None:
+                cls.log_statistics()
                 raise RuntimeError(f"Could not identify an instantiated source class of type '{bean_wrapper.bean_class.return_type}' for bean '{bean_wrapper.bean_name}'")
             preloaded = partial(bean_wrapper.bean_method, current_instance)
         return cls._get_instance_by_named_parameter(dependencies, preloaded)
@@ -206,7 +210,7 @@ class ContextManager:
     @staticmethod
     def _is_dependency(bean_wrapper: BeanWrapper, named_parameter: NamedParameter):
         return bean_wrapper.bean_name == named_parameter.name \
-            or bean_wrapper.return_type == named_parameter.key \
+            or bean_wrapper.return_type == named_parameter.clazz \
             or bean_wrapper.return_type == named_parameter.name
 
     @classmethod
@@ -221,7 +225,8 @@ class ContextManager:
         for dependency in dependencies:
             current_dependency = first_or_none(cls.all_beans(), lambda item: cls._is_dependency(item, dependency))
             if current_dependency is None or current_dependency.instance is None:
-                raise RuntimeError(f"Could not find '{dependency.name}' dependency for bean method '{bean_method}'")
+                cls.log_statistics()
+                raise RuntimeError(f"Could not find '{dependency.name}' with type '{dependency.clazz}' dependency for bean method '{bean_method}'")
             injections[dependency.name] = current_dependency.instance
         new_instance = bean_method(**injections)
         return new_instance
@@ -269,7 +274,7 @@ class ContextManager:
             {ContextManager.bullet_print(cls.imported_modules)} 
              
         Identified Beans:
-            {ContextManager.bullet_print(list(map(lambda it: f"{it.bean_name} -> {it.return_type}", cls.all_beans())))} 
+            {ContextManager.bullet_print(list(map(lambda it: f"{it.bean_name} -> {it.return_type} -> {'OK' if it.instance else 'NOT INSTANTIATED'}", cls.all_beans())))} 
              
         Registered routes:
             {ContextManager.bullet_print(cls.checked_app().url_map.iter_rules())}  
@@ -291,3 +296,34 @@ class ContextManager:
         names = sorted(set(map(lambda k: "- " + _get_str(k), iterable)), key=lambda it: it.lower())
         text = "\n\t\t\t".join(names)
         return text
+
+    @staticmethod
+    def is_superclass_of(clazz1, clazz2):
+        return issubclass(getattr(clazz2, "__origin__", clazz2), getattr(clazz1, "__origin__", clazz1))
+
+    @classmethod
+    def sort_by_dependencies(cls, bean_methods: List[BeanWrapper]) -> List[BeanWrapper]:
+        if len(bean_methods) <= 1:
+            return bean_methods[:]
+
+        list_ = bean_methods[:]
+        last_index = len(list_) - 1
+
+        for k in range(len(list_)):
+            swapped = False
+            for i in range(last_index):
+                for j in range(i + 1, len(list_)):
+                    item1 = list_[i]
+                    item2 = list_[j]
+
+                    should_invert_based_on_dependency = any(cls.is_superclass_of(dep.clazz, item2.return_type) for dep in item1.dependencies)
+                    does_not_depend_inversely = all(not cls.is_superclass_of(dep.clazz, item1.return_type) for dep in item2.dependencies)
+                    should_invert_based_on_size = does_not_depend_inversely and len(item1.dependencies) > len(item2.dependencies)
+
+                    if should_invert_based_on_dependency or should_invert_based_on_size:
+                        list_[i], list_[j] = list_[j], list_[i]
+                        swapped = True
+            if not swapped:
+                break
+
+        return list_
