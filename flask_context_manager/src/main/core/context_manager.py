@@ -15,6 +15,7 @@ from flask_context_manager.src.main.model.bean_wrapper import BeanWrapper, Named
 from flask_context_manager.src.util.collection_util import flatten, get_or_put, first_or_none
 
 if TYPE_CHECKING:
+    from flask_context_manager.src.main.model.beans.base_bean import BaseBean
     from flask_context_manager.src.main.model.beans.bean import Bean
 
 ROOT_DIR = "."
@@ -113,6 +114,12 @@ class ContextManager:
         for bean in ordered_bean_methods:
             new_instance = cls._get_instance_by_bean_wrapper(bean)
             bean.instance = new_instance
+            if bean.super_class is None:
+                continue
+            current_super_class_name = bean.super_class.__class__.__name__
+            if current_super_class_name == "Controller":
+                cls.register_routes(new_instance)
+
 
     @classmethod
     def get_bean_parameters(cls, obj: type) -> List[NamedParameter]:
@@ -236,12 +243,13 @@ class ContextManager:
         return any(pattern in str(path) for pattern in cls.ignored)
 
     @classmethod
-    def add_bean(cls, bean: Type[T]):
+    def add_bean(cls, bean: Type[T], super_class: "BaseBean"):
         wrapped = BeanWrapper(
             bean_name=bean.__name__,
             parameters=cls.get_bean_parameters(bean),
             bean_method=bean,
             return_type=bean,
+            super_class=super_class,
         )
         cls.add_to_bean_map(wrapped.return_type, wrapped)
 

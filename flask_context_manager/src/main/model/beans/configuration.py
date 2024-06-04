@@ -11,7 +11,7 @@ class Configuration(BaseBean):
     def __init__(self, cls):
         super().__init__(cls)
         self.child_class = cls
-        ContextManager.add_bean(self.child_class)
+        ContextManager.add_bean(self.child_class, self)
 
         members = inspect.getmembers(self.child_class)
         self.method_beans = self._get_class_beans(members)

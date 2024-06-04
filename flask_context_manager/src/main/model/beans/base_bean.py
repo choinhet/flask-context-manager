@@ -8,7 +8,7 @@ class BaseBean(ABC):
 
     def __init__(self, cls):
         self.child_class = cls
-        ContextManager.add_bean(cls)
+        ContextManager.add_bean(cls, self)
 
     def __hash__(self):
         return hash(self.child_class)

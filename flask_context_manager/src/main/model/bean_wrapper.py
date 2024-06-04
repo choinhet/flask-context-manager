@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import types
 from dataclasses import dataclass
-from typing import Generic, Optional, List, Type, TypeVar
+from typing import Generic, Optional, List, Type, TypeVar, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask_context_manager.src.main.model.beans.base_bean import BaseBean
 
 T = TypeVar("T")
 
@@ -19,6 +22,7 @@ class BeanWrapper(Generic[T]):
     bean_method: Type[T]
     parameters: List[NamedParameter]
     return_type: Type[T]
+    super_class: Optional["BaseBean"] = None
     bean_class: Optional[BeanWrapper] = None
     instance: Optional[T] = None
     is_method: bool = False
