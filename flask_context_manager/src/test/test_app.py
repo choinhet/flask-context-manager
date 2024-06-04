@@ -21,4 +21,4 @@ handler.setFormatter(formatter)
 app_logger.addHandler(handler)
 
 if __name__ == '__main__':
-    ContextManager.start(debug=True)
+    ContextManager.start(debug=True, production=True    )

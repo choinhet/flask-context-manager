@@ -9,6 +9,7 @@ from typing import Optional, Callable, Any, TypeVar, Dict, TYPE_CHECKING, List, 
 
 import networkx as nx
 from flask import request, Flask
+from waitress import serve
 
 from flask_context_manager.relative_path import RelativePath
 from flask_context_manager.src.main.model.bean_wrapper import BeanWrapper, NamedParameter
@@ -50,12 +51,22 @@ class ContextManager:
         return cls.app
 
     @classmethod
-    def start(cls, production=False, debug=True, statistics=True):
+    def start(
+        cls,
+        debug=True,
+        host="127.0.0.1",
+        port=8080,
+        production=False,
+        statistics=True,
+    ):
         cls._import_all_modules()
         cls._start_all_modules()
         if statistics:
             cls.log_statistics()
-        cls.checked_app().run(debug=debug)
+        if production:
+            serve(cls.checked_app(), host=host, port=port)
+        else:
+            cls.checked_app().run(debug=debug)
 
     @classmethod
     def get_module_name_from_path(cls, path) -> str:
@@ -344,3 +355,9 @@ class ContextManager:
                 break
 
         return list_
+
+    @classmethod
+    def endpoint_map(cls):
+        base_map = list(cls.checked_app().url_map.iter_rules())
+        url_list = list(filter(lambda it: it != "/", map(str, base_map)))
+        return url_list
