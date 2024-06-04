@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import types
 from dataclasses import dataclass
-from typing import Generic, Optional, List, Type, TypeVar, TYPE_CHECKING
+from typing import Generic, Optional, List, Type, TypeVar, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from flask_context_manager.src.main.model.beans.base_bean import BaseBean
@@ -12,7 +11,7 @@ T = TypeVar("T")
 
 @dataclass
 class NamedParameter:
-    clazz: types.MethodType | types.FunctionType
+    clazz: Type | Any
     name: str
 
 

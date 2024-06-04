@@ -108,6 +108,7 @@ class ContextManager:
                 for dependency_provider in dependency_providers:
                     graph.add_edge(bean, dependency_provider)
 
+        cls._check_for_circular_dependency(graph)
         nodes: List[BeanWrapper] = list(nx.topological_sort(graph))
         ordered_bean_methods = cls.sort_by_dependencies(nodes)
 
@@ -120,6 +121,15 @@ class ContextManager:
             if current_super_class_name == "Controller":
                 cls.register_routes(new_instance)
 
+    @classmethod
+    def _check_for_circular_dependency(cls, graph):
+        try:
+            cycle = nx.find_cycle(graph, orientation='original')
+            raise RuntimeError(f"Circular dependency found: {cycle}")
+        except:
+            """
+            This is the expected scenario, it's kind of weird.
+            """
 
     @classmethod
     def get_bean_parameters(cls, obj: type) -> List[NamedParameter]:
@@ -173,21 +183,6 @@ class ContextManager:
         cls.app = app
         return cls
 
-    @classmethod
-    def _get_dependency(cls, annotation, obj) -> object:
-        if annotation == obj:
-            cls.log_statistics()
-            raise RuntimeError(f"Circular dependency detected for service {obj.__name__}")
-
-        instantiated_beans = [bean for bean in cls.beans.values() if not isinstance(bean, type)]
-        dependency_dict = {bean.__class__: bean for bean in instantiated_beans}
-
-        try:
-            return dependency_dict[annotation]
-        except RuntimeError:
-            cls.log_statistics()
-            raise RuntimeError(f"Dependency '{annotation}' not found for object '{obj.__name__}'")
-
     @staticmethod
     def _handle_request_body(method: Callable[[Any], T], *args, **kwargs) -> T:
         if request.method != 'GET':
@@ -214,11 +209,10 @@ class ContextManager:
             preloaded = partial(bean_wrapper.bean_method, current_instance)
         return cls._get_instance_by_named_parameter(dependencies, preloaded)
 
-    @staticmethod
-    def _is_dependency(bean_wrapper: BeanWrapper, named_parameter: NamedParameter):
+    @classmethod
+    def _is_dependency(cls, bean_wrapper: BeanWrapper, named_parameter: NamedParameter):
         return bean_wrapper.bean_name == named_parameter.name \
-            or bean_wrapper.return_type == named_parameter.clazz \
-            or bean_wrapper.return_type == named_parameter.name
+            or cls._handle_class_type(bean_wrapper.return_type) == cls._handle_class_type(named_parameter.clazz)
 
     @classmethod
     def _get_instance_by_bean_type(cls, obj_type: Type[T]) -> Optional[T]:
@@ -305,9 +299,24 @@ class ContextManager:
         text = "\n\t\t\t".join(names)
         return text
 
-    @staticmethod
-    def is_superclass_of(clazz1, clazz2):
-        return issubclass(getattr(clazz2, "__origin__", clazz2), getattr(clazz1, "__origin__", clazz1))
+    @classmethod
+    def _is_super_class_of(cls, clazz1, clazz2):
+        clazz1 = cls._handle_class_type(clazz1)
+        clazz2 = cls._handle_class_type(clazz2)
+        args = [clazz1, clazz2]
+        if not isinstance(clazz1, type) or not isinstance(clazz2, type):
+            return False
+        return issubclass(clazz2, clazz1)
+
+    @classmethod
+    def _handle_class_type(cls, clazz):
+        clazz = getattr(clazz, "__origin__", clazz)
+        if isinstance(clazz, str):
+            beans = cls.all_beans()
+            matched_class = first_or_none(beans, lambda it: getattr(it.return_type, "__name__", it.bean_name) == clazz or it.bean_name == clazz)
+            if matched_class is not None and isinstance(matched_class.return_type, type):
+                return matched_class.return_type
+        return clazz
 
     @classmethod
     def sort_by_dependencies(cls, bean_methods: List[BeanWrapper]) -> List[BeanWrapper]:
@@ -324,8 +333,8 @@ class ContextManager:
                     item1 = list_[i]
                     item2 = list_[j]
 
-                    should_invert_based_on_dependency = any(cls.is_superclass_of(dep.clazz, item2.return_type) for dep in item1.dependencies)
-                    does_not_depend_inversely = all(not cls.is_superclass_of(dep.clazz, item1.return_type) for dep in item2.dependencies)
+                    should_invert_based_on_dependency = any(cls._is_super_class_of(dep.clazz, item2.return_type) for dep in item1.dependencies)
+                    does_not_depend_inversely = all(not cls._is_super_class_of(dep.clazz, item1.return_type) for dep in item2.dependencies)
                     should_invert_based_on_size = does_not_depend_inversely and len(item1.dependencies) > len(item2.dependencies)
 
                     if should_invert_based_on_dependency or should_invert_based_on_size:
