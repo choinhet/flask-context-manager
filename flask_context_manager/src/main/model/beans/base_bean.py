@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from flask_context_manager.src.main.core.context_manager import ContextManager
 
@@ -8,11 +8,7 @@ class BaseBean(ABC):
 
     def __init__(self, cls):
         self.child_class = cls
-        ContextManager.accept({self: cls})
-
-    @abstractmethod
-    def start(self, context, bean):
-        ...
+        ContextManager.add_bean(cls)
 
     def __hash__(self):
         return hash(self.child_class)
